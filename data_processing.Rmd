@@ -106,10 +106,141 @@ plot(filtered_data_graph, layout = layout_with_lgl(filtered_data_graph),
 ```
 
 
+```{r}
+
+intel_data <- sdc_data %>% filter(status == "Completed/Signed", 
+                                    date_terminated == "",
+                                    #type == "Strategic Alliance",
+                                    #type == "Joint Venture",
+                                    date_announced > "1964-01-01",
+                                    date_announced < "2021-09-15",
+                                    # business_description %like% "SEMICONDUCTOR",
+                                    participants == "INTEL CORP"
+                                    #participants %like% "INTEL CORP"
+                                   # ,participant_nation == "United States"
+                                    ) 
 
 
+deal_list <- unique(intel_data$deal_number)
+
+test_intel <- sdc_data %>% filter(status == "Completed/Signed", 
+                                    date_terminated == "",
+                                    #type == "Strategic Alliance",
+                                    #type == "Joint Venture",
+                                    date_announced > "1964-01-01",
+                                    date_announced < "2021-01-01",
+                                    # business_description %like% "SEMICONDUCTOR",
+                                    deal_number %in% deal_list
+                                    #participants == "INTEL CORP"
+                                    #participants %like% "INTEL CORP"
+                                   # ,participant_nation == "United States"
+                                    ) 
+filtered_data_net <- test_intel %>% select(participants, deal_number)
+
+filtered_data_graph <- as.matrix(table(filtered_data_net)) %*% 
+                        t(as.matrix(table(filtered_data_net))) %>% 
+                          graph_from_adjacency_matrix(mode = "undirected")
+
+filtered_data_graph <- simplify(filtered_data_graph, remove.loops = TRUE, 
+                               remove.multiple = TRUE)
+
+set.seed(1)
+plot(filtered_data_graph, layout = layout_with_kk(filtered_data_graph), 
+     vertex.color = "coral2", vertex.label=NA, vertex.size = 5, edge.width = 0.2, 
+     edge.color = "black")
+
+```
 
 
+```{r}
+amd_data <- sdc_data %>% filter(status == "Completed/Signed", 
+                                    date_terminated == "",
+                                    #type == "Strategic Alliance",
+                                    #type == "Joint Venture",
+                                    date_announced > "1964-01-01",
+                                    date_announced < "2021-09-15",
+                                    # business_description %like% "SEMICONDUCTOR",
+                                    participants == "ADVANCED MICRO DEVICES INC"
+                                    #participants %like% "ADVANCED MICRO DEVICES"
+                                   # ,participant_nation == "United States"
+                                    ) 
+
+
+deal_list <- unique(amd_data$deal_number)
+
+test_amd <- sdc_data %>% filter(status == "Completed/Signed", 
+                                    date_terminated == "",
+                                    #type == "Strategic Alliance",
+                                    #type == "Joint Venture",
+                                    date_announced > "1964-01-01",
+                                    date_announced < "2015-01-01",
+                                    # business_description %like% "SEMICONDUCTOR",
+                                    deal_number %in% deal_list
+                                    #participants == "INTEL CORP"
+                                    #participants %like% "INTEL CORP"
+                                   # ,participant_nation == "United States"
+                                    ) 
+filtered_data_net <- test_amd %>% select(participants, deal_number)
+
+filtered_data_graph <- as.matrix(table(filtered_data_net)) %*% 
+                        t(as.matrix(table(filtered_data_net))) %>% 
+                          graph_from_adjacency_matrix(mode = "undirected")
+
+filtered_data_graph <- simplify(filtered_data_graph, remove.loops = TRUE, 
+                               remove.multiple = TRUE)
+
+set.seed(1)
+plot(filtered_data_graph, layout = layout_with_kk(filtered_data_graph), 
+     vertex.color = "coral2", vertex.label=NA, vertex.size = 5, edge.width = 0.2, 
+     edge.color = "black")
+```
+
+
+```{r}
+first_conn <- unique(test_amd$participants)
+
+intel_data <- sdc_data %>% filter(status == "Completed/Signed", 
+                                    date_terminated == "",
+                                    #type == "Strategic Alliance",
+                                    #type == "Joint Venture",
+                                    date_announced > "1964-01-01",
+                                    date_announced < "2021-09-15",
+                                    # business_description %like% "SEMICONDUCTOR",
+                                    #participants == "ADVANCED MICRO DEVICES INC"
+                                    #participants %like% "ADVANCED MICRO DEVICES"
+                                    participants %in% first_conn
+                                   # ,participant_nation == "United States"
+                                    ) 
+deals_secondary <- unique(intel_data$deal_number)
+
+intel_data_secondary <- sdc_data %>% filter(status == "Completed/Signed", 
+                                    date_terminated == "",
+                                    #type == "Strategic Alliance",
+                                    #type == "Joint Venture",
+                                    date_announced > "1964-01-01",
+                                    date_announced < "2021-09-15",
+                                    # business_description %like% "SEMICONDUCTOR",
+                                    #participants == "ADVANCED MICRO DEVICES INC"
+                                    #participants %like% "ADVANCED MICRO DEVICES"
+                                    #participants %in% first_conn
+                                  deal_number %in% deals_secondary
+                                   # ,participant_nation == "United States"
+                                    ) 
+filtered_data_net <- intel_data_secondary %>% select(participants, deal_number)
+
+filtered_data_graph <- as.matrix(table(filtered_data_net)) %*% 
+                        t(as.matrix(table(filtered_data_net))) %>% 
+                          graph_from_adjacency_matrix(mode = "undirected")
+
+filtered_data_graph <- simplify(filtered_data_graph, remove.loops = TRUE, 
+                               remove.multiple = TRUE)
+
+set.seed(1)
+plot(filtered_data_graph, layout = layout_with_kk(filtered_data_graph), 
+     vertex.color = "coral2", vertex.label=NA, vertex.size = 3, edge.width = 0.2, 
+     edge.color = "black")
+
+```
 
 
 
