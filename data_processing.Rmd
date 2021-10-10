@@ -1,0 +1,133 @@
+```{r}
+library(tidyr)
+library(dplyr)
+library(igraph)
+library(harmonizer)
+library(data.table)
+```
+```{r}
+# this is to install the harmonizer package. It installs a bunch of other stuff I think, not sure how to fix that
+
+#if (!require("devtools", character.only = TRUE)) {
+#    install.packages("devtools", repos = 'http://cloud.r-project.org')
+#    library("devtools", character.only = TRUE)
+#}
+
+#install_github("stasvlasov/harmonizer")
+```
+
+
+```{r}
+sdc_data <- readRDS("SDC_data_2021.rds")
+orbis_data <- read.csv("cleaned_orbis_data.csv", sep = ";")
+```
+
+
+```{r}
+# harmonizing participants and business_description columns
+
+sdc_data$participants <- sdc_data$participants %>% 
+                              harmonize.toascii(detect.encoding = FALSE) %>%  
+                                harmonize.squish.spaces() %>% 
+                                  harmonize.remove.brackets %>% 
+                                    harmonize.toupper %>% 
+                                      harmonize.squish.spaces(wrap.in.spaces = 
+                                                                TRUE) %>% 
+                                        cockburn.replace.punctuation %>% 
+                                          harmonize.squish.spaces
+
+sdc_data$business_description <- sdc_data$business_description %>% 
+                              harmonize.toascii(detect.encoding = FALSE) %>%  
+                                harmonize.squish.spaces() %>% 
+                                  harmonize.remove.brackets %>% 
+                                    harmonize.toupper %>% 
+                                      harmonize.squish.spaces(wrap.in.spaces = 
+                                                                TRUE) %>% 
+                                        cockburn.replace.punctuation %>% 
+                                          harmonize.squish.spaces
+
+
+```
+
+```{r}
+
+# part of the data we want
+filtered_data <- sdc_data %>% filter(status == "Completed/Signed", 
+                                    date_terminated == "",
+                                    #type == "Strategic Alliance",
+                                    #type == "Joint Venture",
+                                    date_announced > "1964-01-01",
+                                    date_announced < "2021-09-15",
+                                    # business_description %like% "SEMICONDUCTOR",
+                                    participants == "INTEL CORP"
+                                    #participants %like% "INTEL CORP"
+                                   # ,participant_nation == "United States"
+                                    ) 
+
+
+# columns
+# filtered_data <- filtered_data %>% select(participants, date_announced, type, 
+#                                         SIC_primary, participant_nation, 
+#                                         deal_number, business_description)
+
+
+# Constructing alliance network
+# Let's first create a new dataframe that contains information on affiliation of 
+# organizations with different alliances 
+filtered_data_net <- filtered_data %>% select(participants, deal_number)
+
+
+```
+
+```{r}
+# Multiplying the incidence matrix with its transpose to obtain the adjacency 
+# matrix and turning this matrix into a graph object --> essentially, we obtain 
+# a one-mode network from a two-mode network 
+filtered_data_graph <- as.matrix(table(filtered_data_net)) %*% 
+                        t(as.matrix(table(filtered_data_net))) %>% 
+                          graph_from_adjacency_matrix(mode = "undirected")
+```
+
+```{r}
+# Removing loops and multiple edges (the latter is optional and depends on 
+# whether you want to use this information for your visualization)
+filtered_data_graph <- simplify(filtered_data_graph, remove.loops = TRUE, 
+                               remove.multiple = TRUE)
+
+
+```
+
+```{r}
+# Default visualization
+set.seed(1)
+plot(filtered_data_graph, layout = layout_with_lgl(filtered_data_graph), 
+     vertex.color = "coral2", vertex.label=NA, vertex.size = 3, edge.width = 0.2, 
+     edge.color = "black")
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
