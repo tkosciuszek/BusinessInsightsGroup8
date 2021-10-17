@@ -1,0 +1,221 @@
+```{r}
+library(tidyr)
+library(dplyr)
+library(igraph)
+library(harmonizer)
+library(data.table)
+
+sdc_data <- readRDS("SDC_data_2021.rds")
+orbis_data <- read.csv("cleaned_orbis_data.csv", sep = ";")
+
+sdc_data$participants <- sdc_data$participants %>% 
+                              harmonize.toascii(detect.encoding = FALSE) %>%  
+                                harmonize.squish.spaces() %>% 
+                                  harmonize.remove.brackets %>% 
+                                    harmonize.toupper %>% 
+                                      harmonize.squish.spaces(wrap.in.spaces = 
+                                                                TRUE) %>% 
+                                        cockburn.replace.punctuation %>% 
+                                          harmonize.squish.spaces
+
+sdc_data$business_description <- sdc_data$business_description %>% 
+                              harmonize.toascii(detect.encoding = FALSE) %>%  
+                                harmonize.squish.spaces() %>% 
+                                  harmonize.remove.brackets %>% 
+                                    harmonize.toupper %>% 
+                                      harmonize.squish.spaces(wrap.in.spaces = 
+                                                                TRUE) %>% 
+                                        cockburn.replace.punctuation %>% 
+                                          harmonize.squish.spaces
+```
+
+```{r}
+biggest <- c("AP MOLLER MAERSK A S", "MSC MEDITERRANEAN SHIPPING CO", "COSCO SHIPPING CO LTD",
+             "CMA CGM SA")
+
+moller_data <- sdc_data %>% filter(status == "Completed/Signed", 
+                                    date_terminated == "",
+                                    date_announced > "1964-01-01",
+                                    date_announced < "2021-09-15",
+                                    # participants == "SHELL OIL CO",
+                                    participants %like% "AP MOLLER MAERSK A S"
+                                    ) 
+
+medit_data <- sdc_data %>% filter(status == "Completed/Signed", 
+                                    date_terminated == "",
+                                    date_announced > "1964-01-01",
+                                    date_announced < "2021-09-15",
+                                    participants %like% "MSC MEDITERRANEAN SHIPPING CO"
+                                    ) 
+
+cosco_data <- sdc_data %>% filter(status == "Completed/Signed", 
+                                    date_terminated == "",
+                                    date_announced > "1964-01-01",
+                                    date_announced < "2021-09-15",
+                                    participants %like% "COSCO SHIPPING CO LTD"
+                                    ) 
+
+cma_data <- sdc_data %>% filter(status == "Completed/Signed", 
+                                    date_terminated == "",
+                                    date_announced > "1964-01-01",
+                                    date_announced < "2021-09-15",
+                                    participants %like% "CMA CGM SA"
+                                    ) 
+
+```
+
+
+```{r}
+terminated_data <- sdc_data %>% filter(
+  # date_terminated != ""
+  status == "Terminated"
+                                    ) 
+```
+
+
+```{r}
+# looking for the alternative energy companies
+energ_data <- sdc_data %>% filter(
+                                    # status == "Completed/Signed", 
+                                    date_terminated == "",
+                                    date_announced > "1963",
+                                    date_announced < "2022",
+                                    participants %like% "CMA CGM SA"
+                                    ) 
+
+```
+
+```{r}
+deal_nrs <- unique(c(cma_data$deal_number, moller_data$deal_number, cosco_data$deal_number, cma_data$deal_number))
+
+first_conn_data <- sdc_data %>% filter(status == "Completed/Signed", 
+                                    date_terminated == "",
+                                    date_announced > "1964-01-01",
+                                    date_announced < "2021-09-15",
+                                    deal_number %in% deal_nrs
+                                    ) 
+```
+
+
+```{r}
+
+
+
+}
+data$color
+# 
+```
+
+```{r}
+data <- first_conn_data
+
+data$color <- "red"
+data$biggest <- NA
+seen <- c()
+`%notin%` <- Negate(`%in%`)
+for (r in 1:nrow(data)) {
+  if (data[r, "participants"] %in% biggest) {
+    data[r, "color"] <- "blue"
+    data[r, "biggest"] <- data[r, "participants"]
+    # if (data[r, "participants"] %notin% seen) {
+    #   seen <- append(data[r, "participants"], seen)
+    #   data[r, "biggest"] <- data[r, "participants"]
+    # }
+    
+    
+  }
+}
+
+
+data_net <- data %>% select(participants, deal_number)
+data_graph <- as.matrix(table(data_net)) %*% 
+                        t(as.matrix(table(data_net))) %>% 
+                          graph_from_adjacency_matrix(mode = "undirected")
+data_graph <- simplify(data_graph, remove.loops = TRUE, 
+                               remove.multiple = TRUE)
+
+
+set.seed(1)
+plot(data_graph, 
+     layout = layout_in_circle(data_graph), 
+     # vertex.color = data$color, 
+     # vertex.label = data$participants, 
+     # vertex.label = NA,
+     vertex.label.font = 4,
+     vertex.size = 10, 
+     edge.width = 1, 
+     vertex.label.dist=1.5,
+     edge.color = "black")
+```
+
+```{r}
+
+for (year in 2000:2022) {
+  print(year)
+  moller_data <- sdc_data %>% filter(status == "Completed/Signed", 
+                                    date_terminated == "",
+                                    date_announced > "1963",
+                                    date_announced < as.character(year),
+                                    # participants == "SHELL OIL CO",
+                                    participants %like% "AP MOLLER MAERSK A S"
+                                    ) 
+
+  medit_data <- sdc_data %>% filter(status == "Completed/Signed", 
+                                      date_terminated == "",
+                                      date_announced > "1963",
+                                      date_announced < as.character(year),
+                                      participants %like% "MSC MEDITERRANEAN SHIPPING CO"
+                                      ) 
+  
+  cosco_data <- sdc_data %>% filter(status == "Completed/Signed", 
+                                      date_terminated == "",
+                                      date_announced > "1963",
+                                      date_announced < as.character(year),
+                                      participants %like% "COSCO SHIPPING CO LTD"
+                                      ) 
+  
+  cma_data <- sdc_data %>% filter(status == "Completed/Signed", 
+                                      date_terminated == "",
+                                      date_announced > "1963",
+                                      date_announced < as.character(year),
+                                      participants %like% "CMA CGM SA"
+                                      ) 
+  deal_nrs <- unique(c(cma_data$deal_number, moller_data$deal_number, cosco_data$deal_number, cma_data$deal_number))
+
+  first_conn_data <- sdc_data %>% filter(status == "Completed/Signed", 
+                                      date_terminated == "",
+                                      date_announced > "1964-01-01",
+                                      date_announced < "2021-09-15",
+                                      deal_number %in% deal_nrs
+                                      ) 
+  data <- first_conn_data
+  
+  data_net <- data %>% select(participants, deal_number)
+  data_graph <- as.matrix(table(data_net)) %*% 
+                          t(as.matrix(table(data_net))) %>% 
+                            graph_from_adjacency_matrix(mode = "undirected")
+  data_graph <- simplify(data_graph, remove.loops = TRUE, 
+                                 remove.multiple = TRUE)
+  
+  
+  set.seed(1)
+  jpeg(file = paste0(as.character(year), ".jpeg"))
+  
+  plot(data_graph, 
+       main= paste('Until year', as.character(year)),
+       layout = layout_in_circle(data_graph), 
+       vertex.label.font = 4,
+       vertex.size = 10,
+       vertex.label.dist=1.5,
+       edge.width = 1, 
+       edge.color = "black")
+  dev.off()
+}
+
+```
+
+```{r}
+year = 29
+paste0('hell', as.character(29), 'lo')
+```
+

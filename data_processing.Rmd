@@ -58,8 +58,8 @@ filtered_data <- sdc_data %>% filter(status == "Completed/Signed",
                                     #type == "Joint Venture",
                                     date_announced > "1964-01-01",
                                     date_announced < "2021-09-15",
-                                    # business_description %like% "SEMICONDUCTOR",
-                                    participants == "INTEL CORP"
+                                    #business_description %like% "OIL",
+                                    participants == "SHELL OIL CO"
                                     #participants %like% "INTEL CORP"
                                    # ,participant_nation == "United States"
                                     ) 
@@ -77,6 +77,34 @@ filtered_data <- sdc_data %>% filter(status == "Completed/Signed",
 filtered_data_net <- filtered_data %>% select(participants, deal_number)
 
 
+```
+
+
+```{r}
+# part of the data we want
+UNI_data <- sdc_data %>% filter(status == "Completed/Signed", 
+                                    date_terminated == "",
+                                    #type == "Strategic Alliance",
+                                    #type == "Joint Venture",
+                                    date_announced > "1964-01-01",
+                                    date_announced < "2021-09-15",
+                                    business_description %like% "GREEN",
+                                    #participants == "STANFORD UNIVERSITY",
+                                    #participants %like% "GREENPEACE"
+                                   #participant_nation == "United States"
+                                    ) 
+
+
+# columns
+# filtered_data <- filtered_data %>% select(participants, date_announced, type, 
+#                                         SIC_primary, participant_nation, 
+#                                         deal_number, business_description)
+
+
+# Constructing alliance network
+# Let's first create a new dataframe that contains information on affiliation of 
+# organizations with different alliances 
+UNI_data_net <- UNI_data %>% select(participants, deal_number)
 ```
 
 ```{r}
