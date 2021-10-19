@@ -27,6 +27,9 @@ sdc_data$business_description <- sdc_data$business_description %>%
                                                                 TRUE) %>% 
                                         cockburn.replace.punctuation %>% 
                                           harmonize.squish.spaces
+
+
+# https://www.r-graph-gallery.com/248-igraph-plotting-parameters.html <- for graphs
 ```
 
 ```{r}
@@ -74,16 +77,116 @@ terminated_data <- sdc_data %>% filter(
 
 
 ```{r}
-# looking for the alternative energy companies
+
 energ_data <- sdc_data %>% filter(
                                     # status == "Completed/Signed", 
                                     date_terminated == "",
                                     date_announced > "1963",
                                     date_announced < "2022",
-                                    participants %like% "CMA CGM SA"
+                                    participants %like% "DREAM UNLIMITED CORP"
+       
+                                    
+                                                 ) 
+
+```
+
+
+```{r}
+# MAERSK
+
+# `%notin%` <- Negate(`%in%`)
+
+m_data <- sdc_data %>% filter(
+                                    status == "Completed/Signed", 
+                                    date_terminated == "",
+                                    date_announced > "1963",
+                                    date_announced < "2022",
+                                    participants == "AP MOLLER MAERSK A S"
+                                    ) 
+deal_nrs <- m_data$deal_number
+
+maersk_frst_data <- sdc_data %>% filter(
+                                    status == "Completed/Signed", 
+                                    date_terminated == "",
+                                    date_announced > "1963",
+                                    date_announced < "2022",
+                                    deal_number %in% deal_nrs
+                                    ) 
+
+
+maersk_2_data <- sdc_data %>% filter(
+                                    status == "Completed/Signed", 
+                                    date_terminated == "",
+                                    date_announced > "1963",
+                                    date_announced < "2022",
+                                    participants %in% unique(maersk_frst_data$participants)
+                                    ) 
+
+deal_nrs_scnd <- maersk_2_data$deal_number
+
+maersk_scnd_data <- sdc_data %>% filter(
+                                    status == "Completed/Signed", 
+                                    date_terminated == "",
+                                    date_announced > "1963",
+                                    date_announced < "2022",
+                                    deal_number %in% deal_nrs_scnd
+                                    ) 
+
+#removing IBM from the data (too big)
+remove_2_IBM <- maersk_scnd_data[(maersk_scnd_data$participants == "IBM CORP"),]$deal_number
+remove_2_NOVO <- maersk_scnd_data[(maersk_scnd_data$participants == "NOVO NORDISK A S"),]$deal_number
+
+deal_nrs_no_big <- deal_nrs_scnd[!deal_nrs_scnd %in% remove_2_IBM]
+deal_nrs_no_big <- deal_nrs_no_big[!deal_nrs_no_big %in% remove_2_NOVO]
+
+maersk_scnd_no_big <- sdc_data %>% filter(
+                                    status == "Completed/Signed", 
+                                    date_terminated == "",
+                                    date_announced > "1963",
+                                    date_announced < "2022",
+                                    deal_number %in% deal_nrs_no_big
+                                    ) 
+
+
+
+maersk_3_data <- sdc_data %>% filter(
+                                    status == "Completed/Signed", 
+                                    date_terminated == "",
+                                    date_announced > "1963",
+                                    date_announced < "2022",
+                                    participants %in% unique(maersk_scnd_no_big$participants)
+                                    ) 
+
+deal_nrs_thrd <- unique(maersk_3_data$deal_number)
+
+maersk_thrd_data <- sdc_data %>% filter(
+                                    status == "Completed/Signed", 
+                                    date_terminated == "",
+                                    date_announced > "1963",
+                                    date_announced < "2022",
+                                    deal_number %in% deal_nrs_thrd
+                                    ) 
+
+remove_3_IBM <- maersk_thrd_data[(maersk_thrd_data$participants == "IBM CORP"),]$deal_number
+remove_3_NOVO <- maersk_thrd_data[(maersk_thrd_data$participants == "NOVO NORDISK A S"),]$deal_number
+
+deal_nrs_no_big <- deal_nrs_thrd[!deal_nrs_thrd %in% remove_3_IBM]
+deal_nrs_no_big <- deal_nrs_no_big[!deal_nrs_no_big %in% remove_3_NOVO]
+
+maersk_thrd_data <- sdc_data %>% filter(
+                                    status == "Completed/Signed", 
+                                    date_terminated == "",
+                                    date_announced > "1963",
+                                    date_announced < "2022",
+                                    deal_number %in% deal_nrs_no_big
                                     ) 
 
 ```
+
+```{r}
+deal_nrs_thrd
+```
+
 
 ```{r}
 deal_nrs <- unique(c(cma_data$deal_number, moller_data$deal_number, cosco_data$deal_number, cma_data$deal_number))
@@ -92,18 +195,34 @@ first_conn_data <- sdc_data %>% filter(status == "Completed/Signed",
                                     date_terminated == "",
                                     date_announced > "1964-01-01",
                                     date_announced < "2021-09-15",
-                                    deal_number %in% deal_nrs
+                                    deal_number %in% deal_nrs 
                                     ) 
 ```
 
 
 ```{r}
+# second tier
 
+# parts_two <- unique(first_conn_data$participants)
 
+# parts_two <- unique()
 
-}
-data$color
-# 
+second_conn <- sdc_data %>% filter(status == "Completed/Signed", 
+                                    date_terminated == "",
+                                    date_announced > "1964-01-01",
+                                    date_announced < "2021-09-15",
+                                    participants %in% parts_two
+                                    ) 
+
+deal_nrs_two <- second_conn$deal_number
+
+second_conn_data <- sdc_data %>% filter(status == "Completed/Signed", 
+                                    date_terminated == "",
+                                    date_announced > "1964-01-01",
+                                    date_announced < "2021-09-15",
+                                    deal_number %in% deal_nrs_two
+                                    ) 
+
 ```
 
 ```{r}
@@ -113,6 +232,7 @@ data$color <- "red"
 data$biggest <- NA
 seen <- c()
 `%notin%` <- Negate(`%in%`)
+
 for (r in 1:nrow(data)) {
   if (data[r, "participants"] %in% biggest) {
     data[r, "color"] <- "blue"
@@ -128,24 +248,33 @@ for (r in 1:nrow(data)) {
 
 
 data_net <- data %>% select(participants, deal_number)
-data_graph <- as.matrix(table(data_net)) %*% 
-                        t(as.matrix(table(data_net))) %>% 
+data_graph <- as.matrix(table(data_net)) %*% t(as.matrix(table(data_net))) %>%
                           graph_from_adjacency_matrix(mode = "undirected")
 data_graph <- simplify(data_graph, remove.loops = TRUE, 
                                remove.multiple = TRUE)
 
 
 set.seed(1)
+
 plot(data_graph, 
+     main= paste('Until year', as.character(2022)),
      layout = layout_in_circle(data_graph), 
-     # vertex.color = data$color, 
-     # vertex.label = data$participants, 
-     # vertex.label = NA,
      vertex.label.font = 4,
-     vertex.size = 10, 
-     edge.width = 1, 
+     vertex.size = 10,
+     vertex.label = NA,
      vertex.label.dist=1.5,
+     edge.width = 1, 
      edge.color = "black")
+# plot(data_graph, 
+#      layout = layout_in_circle(data_graph), 
+#      # vertex.color = data$color, 
+#      # vertex.label = data$participants, 
+#      vertex.label = NA,
+#      # vertex.label.font = 4,
+#      vertex.size = 10, 
+#      edge.width = 1, 
+#      vertex.label.dist=1.5,
+#      edge.color = "black")
 ```
 
 ```{r}
@@ -156,7 +285,6 @@ for (year in 2000:2022) {
                                     date_terminated == "",
                                     date_announced > "1963",
                                     date_announced < as.character(year),
-                                    # participants == "SHELL OIL CO",
                                     participants %like% "AP MOLLER MAERSK A S"
                                     ) 
 
@@ -199,7 +327,7 @@ for (year in 2000:2022) {
   
   
   set.seed(1)
-  jpeg(file = paste0(as.character(year), ".jpeg"))
+  # jpeg(file = paste0(as.character(year), ".jpeg"))
   
   plot(data_graph, 
        main= paste('Until year', as.character(year)),
@@ -209,13 +337,158 @@ for (year in 2000:2022) {
        vertex.label.dist=1.5,
        edge.width = 1, 
        edge.color = "black")
-  dev.off()
+  
+  # dev.off()
 }
 
 ```
 
 ```{r}
-year = 29
-paste0('hell', as.character(29), 'lo')
+journalists <- read.csv("journalists-edges.csv", 
+                        header = TRUE, row.names = 1) 
+
+journalists_attr <- read.csv("journalists-nodes.csv", 
+                             header = TRUE, 
+                             as.is = TRUE)
+
+journalists_net <- igraph::graph.incidence(journalists)
 ```
+
+```{r}
+
+```
+
+```{r}
+igraph::V(journalists_net)$color <- hcl.colors(2)[as.factor(igraph::V(journalists_net)$type)]
+igraph::V(journalists_net)$shape <- ifelse(igraph::V(journalists_net)$type == TRUE, "circle", "square")
+# 
+# # News agencies will have name labels, journalists will not:
+igraph::V(journalists_net)$label <- ifelse(igraph::V(journalists_net)$type == FALSE,
+                                           journalists_attr$name[igraph::V(journalists_net)$type == FALSE],
+                                           NA)
+
+plot(journalists_net, 
+     vertex.label.cex = 0.6,
+     vertex.label.font = 2, 
+     vertex.label.color = "white"
+     # ,vertex.size = ifelse(igraph::V(journalists_net)$type == FALSE, 16, 6)
+     )
+
+```
+
+```{r}
+journalists
+```
+
+
+
+```{r}
+
+data_net <- maersk_thrd_data %>% select(participants, deal_number)
+
+data_matrix <- as.matrix(table(data_net)) %*% 
+                        t(as.matrix(table(data_net)))
+# diag(data_matrix) <- 0
+# data_matrix[data_matrix > 1.1] <- 1
+
+# data_matrix[lower.tri(data_matrix)] <- 0
+
+data_graph <- igraph::graph.incidence(data_matrix)
+
+
+data_graph <- simplify(data_graph, remove.loops = TRUE, 
+                               remove.multiple = TRUE)
+
+
+
+grap <- graph_from_adjacency_matrix(
+  data_matrix,
+  mode = "undirected",
+  # mode = c("directed", "undirected", "max", "min", "upper", "lower", "plus"),
+  weighted = "max",
+  diag = FALSE,
+  add.colnames = NULL,
+  add.rownames = NA
+)
+
+# pdf("graphopt.pdf", height = 14, width = 14)
+
+plot(grap,
+     vertex.label.cex = 0.1,
+     vertex.label.font = 2,
+     # vertex.label = NA,
+     vertex.label.color = "black",
+     vertex.size = 1,
+     edge.width = 1
+     # ,vertex.size = ifelse(igraph::V(journalists_net)$type == FALSE, 16, 6)
+     )
+# dev.off()
+```
+
+
+```{r}
+data_net <- maersk_thrd_data %>% select(participants, deal_number)
+
+data_matrix <- as.matrix(table(data_net)) %*% 
+                        t(as.matrix(table(data_net)))
+# diag(data_matrix) <- 0
+# data_matrix[data_matrix > 1.1] <- 1
+
+# data_matrix[lower.tri(data_matrix)] <- 0
+
+data_graph <- igraph::graph.incidence(data_matrix)
+
+
+data_graph <- simplify(data_graph, remove.loops = TRUE, 
+                               remove.multiple = TRUE)
+
+
+
+grap <- graph_from_adjacency_matrix(
+  data_matrix,
+  mode = "undirected",
+  # mode = c("directed", "undirected", "max", "min", "upper", "lower", "plus"),
+  weighted = "max",
+  diag = FALSE,
+  add.colnames = NULL,
+  add.rownames = NA
+)
+
+# pdf("graphopt.pdf", height = 14, width = 14)
+
+plot(grap,
+     vertex.label.cex = 1,
+     vertex.label.font = 2,
+     # vertex.label = NA,
+     vertex.label.color = "black",
+     vertex.size = 8
+     # ,vertex.label.dist=1
+     # ,vertex.size = ifelse(igraph::V(journalists_net)$type == FALSE, 16, 6)
+     )
+# dev.off()
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
