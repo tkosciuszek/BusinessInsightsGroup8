@@ -83,10 +83,13 @@ energ_data <- sdc_data %>% filter(
                                     date_terminated == "",
                                     date_announced > "1963",
                                     date_announced < "2022",
-                                    participants %like% "DREAM UNLIMITED CORP"
+                                    participants %like% "YANG MING MARINE TRANSPORT"
        
                                     
                                                  ) 
+
+m_data$participants <- "AP MOLLER MAERSK A S"
+maersk_scnd_data
 
 ```
 
@@ -101,7 +104,10 @@ m_data <- sdc_data %>% filter(
                                     date_terminated == "",
                                     date_announced > "1963",
                                     date_announced < "2022",
-                                    participants == "AP MOLLER MAERSK A S"
+                                    participants %like% "YANG MING MARINE TRANSPORT"
+                                    # participants %like% "ORIENT OVERSEAS"
+                                    # participants %like% "MAERSK A S"
+                                    # participants == "AP MOLLER MAERSK A S"
                                     ) 
 deal_nrs <- m_data$deal_number
 
@@ -111,7 +117,8 @@ maersk_frst_data <- sdc_data %>% filter(
                                     date_announced > "1963",
                                     date_announced < "2022",
                                     deal_number %in% deal_nrs
-                                    ) 
+                                    )
+
 
 
 maersk_2_data <- sdc_data %>% filter(
@@ -122,6 +129,8 @@ maersk_2_data <- sdc_data %>% filter(
                                     participants %in% unique(maersk_frst_data$participants)
                                     ) 
 
+
+
 deal_nrs_scnd <- maersk_2_data$deal_number
 
 maersk_scnd_data <- sdc_data %>% filter(
@@ -131,6 +140,8 @@ maersk_scnd_data <- sdc_data %>% filter(
                                     date_announced < "2022",
                                     deal_number %in% deal_nrs_scnd
                                     ) 
+
+maersk_scnd_data$participants[maersk_scnd_data$participants == "MAERSK A S"] <- "AP MOLLER MAERSK A S"
 
 #removing IBM from the data (too big)
 remove_2_IBM <- maersk_scnd_data[(maersk_scnd_data$participants == "IBM CORP"),]$deal_number
@@ -173,7 +184,7 @@ remove_3_NOVO <- maersk_thrd_data[(maersk_thrd_data$participants == "NOVO NORDIS
 deal_nrs_no_big <- deal_nrs_thrd[!deal_nrs_thrd %in% remove_3_IBM]
 deal_nrs_no_big <- deal_nrs_no_big[!deal_nrs_no_big %in% remove_3_NOVO]
 
-maersk_thrd_data <- sdc_data %>% filter(
+maersk_thrd_no_big <- sdc_data %>% filter(
                                     status == "Completed/Signed", 
                                     date_terminated == "",
                                     date_announced > "1963",
@@ -277,17 +288,19 @@ plot(data_graph,
 #      edge.color = "black")
 ```
 
+Ying 
+
 ```{r}
 
-for (year in 2000:2022) {
+for (year in 1997:2022) {
   print(year)
   moller_data <- sdc_data %>% filter(status == "Completed/Signed", 
                                     date_terminated == "",
                                     date_announced > "1963",
                                     date_announced < as.character(year),
-                                    participants %like% "AP MOLLER MAERSK A S"
+                                    participants %like% "MAERSK A S"
                                     ) 
-
+  
   medit_data <- sdc_data %>% filter(status == "Completed/Signed", 
                                       date_terminated == "",
                                       date_announced > "1963",
@@ -295,6 +308,7 @@ for (year in 2000:2022) {
                                       participants %like% "MSC MEDITERRANEAN SHIPPING CO"
                                       ) 
   
+
   cosco_data <- sdc_data %>% filter(status == "Completed/Signed", 
                                       date_terminated == "",
                                       date_announced > "1963",
@@ -302,43 +316,63 @@ for (year in 2000:2022) {
                                       participants %like% "COSCO SHIPPING CO LTD"
                                       ) 
   
+
   cma_data <- sdc_data %>% filter(status == "Completed/Signed", 
                                       date_terminated == "",
                                       date_announced > "1963",
                                       date_announced < as.character(year),
                                       participants %like% "CMA CGM SA"
                                       ) 
+  
+  cma_data$participants[cma_data$participants == "MAERSK A S"] <- "AP MOLLER MAERSK A S"
+  
+  
   deal_nrs <- unique(c(cma_data$deal_number, moller_data$deal_number, cosco_data$deal_number, cma_data$deal_number))
 
   first_conn_data <- sdc_data %>% filter(status == "Completed/Signed", 
                                       date_terminated == "",
-                                      date_announced > "1964-01-01",
-                                      date_announced < "2021-09-15",
+                                      date_announced > "1963",
+                                      date_announced < "2022",
                                       deal_number %in% deal_nrs
                                       ) 
-  data <- first_conn_data
+  first_conn_data$participants[first_conn_data$participants == "MAERSK A S"] <- "AP MOLLER MAERSK A S"
   
-  data_net <- data %>% select(participants, deal_number)
-  data_graph <- as.matrix(table(data_net)) %*% 
-                          t(as.matrix(table(data_net))) %>% 
-                            graph_from_adjacency_matrix(mode = "undirected")
+  data_net <- first_conn_data %>% select(participants, deal_number)
+  
+  data_matrix <- as.matrix(table(data_net)) %*% 
+                          t(as.matrix(table(data_net)))
+  
+  data_graph <- igraph::graph.incidence(data_matrix)
+  
+  
   data_graph <- simplify(data_graph, remove.loops = TRUE, 
                                  remove.multiple = TRUE)
   
+  grap <- graph_from_adjacency_matrix(
+    data_matrix,
+    mode = "undirected",
+    # mode = c("directed", "undirected", "max", "min", "upper", "lower", "plus"),
+    weighted = "max",
+    diag = FALSE,
+    add.colnames = NULL,
+    add.rownames = NA
+  )
   
-  set.seed(1)
-  # jpeg(file = paste0(as.character(year), ".jpeg"))
+  jpeg(paste0(year,".jpeg"), width=15, height=15, units="in", res=300)
   
-  plot(data_graph, 
-       main= paste('Until year', as.character(year)),
-       layout = layout_in_circle(data_graph), 
-       vertex.label.font = 4,
-       vertex.size = 10,
-       vertex.label.dist=1.5,
-       edge.width = 1, 
-       edge.color = "black")
-  
-  # dev.off()
+  plot(grap,
+       # main = paste0("until year ", year),
+       cex=5,
+       vertex.label.cex = 1,
+       vertex.label.font = 2,
+       # vertex.label = NA,
+       vertex.label.color = "black",
+       vertex.size = 8
+       # ,vertex.label.dist=1
+       # ,vertex.size = ifelse(igraph::V(journalists_net)$type == FALSE, 16, 6)
+       )
+  title(main=paste0("until year ", year), cex.main=4)
+  dev.off()
 }
 
 ```
@@ -355,7 +389,8 @@ journalists_net <- igraph::graph.incidence(journalists)
 ```
 
 ```{r}
-
+year <- 0
+paste0("until year ", year)
 ```
 
 ```{r}
@@ -384,7 +419,7 @@ journalists
 
 ```{r}
 
-data_net <- maersk_thrd_data %>% select(participants, deal_number)
+data_net <- maersk_scnd_data %>% select(participants, deal_number)
 
 data_matrix <- as.matrix(table(data_net)) %*% 
                         t(as.matrix(table(data_net)))
@@ -414,20 +449,26 @@ grap <- graph_from_adjacency_matrix(
 # pdf("graphopt.pdf", height = 14, width = 14)
 
 plot(grap,
-     vertex.label.cex = 0.1,
+     # main = "hello",
+     vertex.label.cex = 0.8,
      vertex.label.font = 2,
      # vertex.label = NA,
      vertex.label.color = "black",
-     vertex.size = 1,
+     vertex.size = 8,
      edge.width = 1
      # ,vertex.size = ifelse(igraph::V(journalists_net)$type == FALSE, 16, 6)
      )
 # dev.off()
 ```
 
+```{r}
+maersk_frst_data$participants[maersk_frst_data$participants == "MAERSK A S"] <- "AP MOLLER MAERSK A S"
+maersk_frst_data
+```
+
 
 ```{r}
-data_net <- maersk_thrd_data %>% select(participants, deal_number)
+data_net <- maersk_scnd_data %>% select(participants, deal_number)
 
 data_matrix <- as.matrix(table(data_net)) %*% 
                         t(as.matrix(table(data_net)))
@@ -454,7 +495,8 @@ grap <- graph_from_adjacency_matrix(
   add.rownames = NA
 )
 
-# pdf("graphopt.pdf", height = 14, width = 14)
+
+# jpeg("YANG MING MARINE TRANSPORT.jpeg", width=15, height=15, units="in", res=300)
 
 plot(grap,
      vertex.label.cex = 1,
@@ -465,9 +507,13 @@ plot(grap,
      # ,vertex.label.dist=1
      # ,vertex.size = ifelse(igraph::V(journalists_net)$type == FALSE, 16, 6)
      )
+title(main=paste0("YANG MING MARINE TRANSPORT"), cex.main=4)
 # dev.off()
 ```
 
+```{r}
+data_net$participants
+```
 
 
 
