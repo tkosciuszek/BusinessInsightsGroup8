@@ -1,12 +1,15 @@
 ```{r}
+# importing libraries
 library(tidyr)
 library(dplyr)
 library(igraph)
 library(harmonizer)
 library(data.table)
+library(styler)
+library(lintr)
 
+# reading data
 sdc_data <- readRDS("SDC_data_2021.rds")
-orbis_data <- read.csv("cleaned_orbis_data.csv", sep = ";")
 
 # preprocessing the participants and business description data
 sdc_data$participants <- sdc_data$participants %>% 
@@ -19,19 +22,8 @@ sdc_data$participants <- sdc_data$participants %>%
                                         cockburn.replace.punctuation %>% 
                                           harmonize.squish.spaces
 
-sdc_data$business_description <- sdc_data$business_description %>% 
-                              harmonize.toascii(detect.encoding = FALSE) %>%  
-                                harmonize.squish.spaces() %>% 
-                                  harmonize.remove.brackets %>% 
-                                    harmonize.toupper %>% 
-                                      harmonize.squish.spaces(wrap.in.spaces = 
-                                                                TRUE) %>% 
-                                        cockburn.replace.punctuation %>% 
-                                          harmonize.squish.spaces
-
-
-# https://www.r-graph-gallery.com/248-igraph-plotting-parameters.html <- for graphs
 ```
+
 
 ```{r}
 # this is for getting all the deal numbers later
@@ -42,7 +34,6 @@ moller_data <- sdc_data %>% filter(status == "Completed/Signed",
                                     date_terminated == "",
                                     date_announced > "1964-01-01",
                                     date_announced < "2021-09-15",
-                                    # participants == "SHELL OIL CO",
                                     participants %like% "AP MOLLER MAERSK A S"
                                     ) 
 
@@ -71,15 +62,7 @@ cma_data <- sdc_data %>% filter(status == "Completed/Signed",
 
 
 ```{r}
-terminated_data <- sdc_data %>% filter(
-  # date_terminated != ""
-  status == "Terminated"
-                                    ) 
-```
-
-
-```{r}
-
+# cell for quickly checking data
 temp_data <- sdc_data %>% filter(# status == "Completed/Signed", 
                                     date_terminated == "",
                                     date_announced > "1963",
@@ -105,6 +88,7 @@ m_data <- sdc_data %>% filter(
                                     ) 
 deal_nrs <- m_data$deal_number
 
+# these are the first order connections
 maersk_frst_data <- sdc_data %>% filter(
                                     status == "Completed/Signed", 
                                     date_terminated == "",
@@ -127,6 +111,7 @@ maersk_2_data <- sdc_data %>% filter(
 
 deal_nrs_scnd <- maersk_2_data$deal_number
 
+# these are the second order connections
 maersk_scnd_data <- sdc_data %>% filter(
                                     status == "Completed/Signed", 
                                     date_terminated == "",
@@ -144,6 +129,7 @@ remove_2_NOVO <- maersk_scnd_data[(maersk_scnd_data$participants == "NOVO NORDIS
 
 deal_nrs_no_big <- deal_nrs_scnd[!deal_nrs_scnd %in% remove_2_IBM]
 deal_nrs_no_big <- deal_nrs_no_big[!deal_nrs_no_big %in% remove_2_NOVO]
+
 
 maersk_scnd_no_big <- sdc_data %>% filter(
                                     status == "Completed/Signed", 
@@ -165,6 +151,7 @@ maersk_3_data <- sdc_data %>% filter(
 
 deal_nrs_thrd <- unique(maersk_3_data$deal_number)
 
+
 maersk_thrd_data <- sdc_data %>% filter(
                                     status == "Completed/Signed", 
                                     date_terminated == "",
@@ -179,6 +166,7 @@ remove_3_NOVO <- maersk_thrd_data[(maersk_thrd_data$participants == "NOVO NORDIS
 deal_nrs_no_big <- deal_nrs_thrd[!deal_nrs_thrd %in% remove_3_IBM]
 deal_nrs_no_big <- deal_nrs_no_big[!deal_nrs_no_big %in% remove_3_NOVO]
 
+# these are the third order connections excluding IBM and NOVO NORDISK
 maersk_thrd_no_big <- sdc_data %>% filter(
                                     status == "Completed/Signed", 
                                     date_terminated == "",
@@ -191,6 +179,7 @@ maersk_thrd_no_big <- sdc_data %>% filter(
 
 
 ```{r}
+# cell for getting first and second connections of the top 4 shipping companies
 deal_nrs <- unique(c(cma_data$deal_number, moller_data$deal_number, cosco_data$deal_number, cma_data$deal_number))
 
 first_conn_data <- sdc_data %>% filter(status == "Completed/Signed", 
@@ -199,16 +188,12 @@ first_conn_data <- sdc_data %>% filter(status == "Completed/Signed",
                                     date_announced < "2021-09-15",
                                     deal_number %in% deal_nrs 
                                     ) 
-```
-
-
-```{r}
 
 second_conn <- sdc_data %>% filter(status == "Completed/Signed", 
                                     date_terminated == "",
                                     date_announced > "1964-01-01",
                                     date_announced < "2021-09-15",
-                                    participants %in% parts_two
+                                    participants %in% first_conn_data$participants
                                     ) 
 
 deal_nrs_two <- second_conn$deal_number
@@ -223,11 +208,10 @@ second_conn_data <- sdc_data %>% filter(status == "Completed/Signed",
 ```
 
 
-
 ```{r}
 # for loop for the network over time. Starting at 1997 when the first connection is formed
 
-for (year in 1997:2022) {
+for (year in 2020:2022) {
   print(year)
   moller_data <- sdc_data %>% filter(status == "Completed/Signed", 
                                     date_terminated == "",
@@ -261,7 +245,7 @@ for (year in 1997:2022) {
   
   cma_data$participants[cma_data$participants == "MAERSK A S"] <- "AP MOLLER MAERSK A S"
   
-  
+  # taking all first connections and combining them into 1 vector
   deal_nrs <- unique(c(cma_data$deal_number, moller_data$deal_number, cosco_data$deal_number, cma_data$deal_number))
 
   first_conn_data <- sdc_data %>% filter(status == "Completed/Signed", 
@@ -272,17 +256,14 @@ for (year in 1997:2022) {
                                       ) 
   first_conn_data$participants[first_conn_data$participants == "MAERSK A S"] <- "AP MOLLER MAERSK A S"
   
+  
   data_net <- first_conn_data %>% select(participants, deal_number)
   
+  # creating the adjacency matrix
   data_matrix <- as.matrix(table(data_net)) %*% 
                           t(as.matrix(table(data_net)))
   
-  data_graph <- igraph::graph.incidence(data_matrix)
-  
-  
-  data_graph <- simplify(data_graph, remove.loops = TRUE, 
-                                 remove.multiple = TRUE)
-  
+  # creating graph object
   grap <- graph_from_adjacency_matrix(
     data_matrix,
     mode = "undirected",
@@ -293,9 +274,10 @@ for (year in 1997:2022) {
     add.rownames = NA
   )
   
-  # saving output for the report
-  jpeg(paste0(year,".jpeg"), width=15, height=15, units="in", res=300)
+  # saving output for the report (uncommend this and line 303 if you want output)
+  # jpeg(paste0(year,".jpeg"), width=15, height=15, units="in", res=300)
   
+  #plotting graph object
   plot(grap,
        # main = paste0("until year ", year),
        cex=5,
@@ -307,9 +289,10 @@ for (year in 1997:2022) {
        )
   title(main=paste0("until year ", year), cex.main=4)
   
-  dev.off()
+  # dev.off()
 }
 
+# open graphs in new window to get a better overview
 ```
 
 
@@ -320,12 +303,6 @@ data_net <- maersk_scnd_data %>% select(participants, deal_number)
 data_matrix <- as.matrix(table(data_net)) %*% 
                         t(as.matrix(table(data_net)))
 
-data_graph <- igraph::graph.incidence(data_matrix)
-
-data_graph <- simplify(data_graph, remove.loops = TRUE, 
-                               remove.multiple = TRUE)
-
-
 grap <- graph_from_adjacency_matrix(
   data_matrix,
   mode = "undirected",
@@ -335,7 +312,6 @@ grap <- graph_from_adjacency_matrix(
   add.rownames = NA
 )
 
-igraph::V(grap)$color <- hcl.colors(deal_nrs)[as.factor(igraph::V(grap)$type)]
 
 plot(grap,
      vertex.label.cex = 1,
