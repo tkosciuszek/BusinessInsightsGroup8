@@ -8,6 +8,7 @@ library(data.table)
 sdc_data <- readRDS("SDC_data_2021.rds")
 orbis_data <- read.csv("cleaned_orbis_data.csv", sep = ";")
 
+# preprocessing the participants and business description data
 sdc_data$participants <- sdc_data$participants %>% 
                               harmonize.toascii(detect.encoding = FALSE) %>%  
                                 harmonize.squish.spaces() %>% 
@@ -33,6 +34,7 @@ sdc_data$business_description <- sdc_data$business_description %>%
 ```
 
 ```{r}
+# this is for getting all the deal numbers later
 biggest <- c("AP MOLLER MAERSK A S", "MSC MEDITERRANEAN SHIPPING CO", "COSCO SHIPPING CO LTD",
              "CMA CGM SA")
 
@@ -78,26 +80,18 @@ terminated_data <- sdc_data %>% filter(
 
 ```{r}
 
-energ_data <- sdc_data %>% filter(
-                                    # status == "Completed/Signed", 
+temp_data <- sdc_data %>% filter(# status == "Completed/Signed", 
                                     date_terminated == "",
                                     date_announced > "1963",
                                     date_announced < "2022",
                                     participants %like% "YANG MING MARINE TRANSPORT"
-       
-                                    
-                                                 ) 
-
-m_data$participants <- "AP MOLLER MAERSK A S"
-maersk_scnd_data
+                                    ) 
 
 ```
 
 
 ```{r}
-# MAERSK
-
-# `%notin%` <- Negate(`%in%`)
+# This part was created for Maersk but applied to other companies as well. 
 
 m_data <- sdc_data %>% filter(
                                     status == "Completed/Signed", 
@@ -141,9 +135,10 @@ maersk_scnd_data <- sdc_data %>% filter(
                                     deal_number %in% deal_nrs_scnd
                                     ) 
 
+# Maersk changed names during the time period
 maersk_scnd_data$participants[maersk_scnd_data$participants == "MAERSK A S"] <- "AP MOLLER MAERSK A S"
 
-#removing IBM from the data (too big)
+#removing IBM from the data (too big) (for the maersk network)
 remove_2_IBM <- maersk_scnd_data[(maersk_scnd_data$participants == "IBM CORP"),]$deal_number
 remove_2_NOVO <- maersk_scnd_data[(maersk_scnd_data$participants == "NOVO NORDISK A S"),]$deal_number
 
@@ -194,10 +189,6 @@ maersk_thrd_no_big <- sdc_data %>% filter(
 
 ```
 
-```{r}
-deal_nrs_thrd
-```
-
 
 ```{r}
 deal_nrs <- unique(c(cma_data$deal_number, moller_data$deal_number, cosco_data$deal_number, cma_data$deal_number))
@@ -212,11 +203,6 @@ first_conn_data <- sdc_data %>% filter(status == "Completed/Signed",
 
 
 ```{r}
-# second tier
-
-# parts_two <- unique(first_conn_data$participants)
-
-# parts_two <- unique()
 
 second_conn <- sdc_data %>% filter(status == "Completed/Signed", 
                                     date_terminated == "",
@@ -236,61 +222,10 @@ second_conn_data <- sdc_data %>% filter(status == "Completed/Signed",
 
 ```
 
-```{r}
-data <- first_conn_data
 
-data$color <- "red"
-data$biggest <- NA
-seen <- c()
-`%notin%` <- Negate(`%in%`)
-
-for (r in 1:nrow(data)) {
-  if (data[r, "participants"] %in% biggest) {
-    data[r, "color"] <- "blue"
-    data[r, "biggest"] <- data[r, "participants"]
-    # if (data[r, "participants"] %notin% seen) {
-    #   seen <- append(data[r, "participants"], seen)
-    #   data[r, "biggest"] <- data[r, "participants"]
-    # }
-    
-    
-  }
-}
-
-
-data_net <- data %>% select(participants, deal_number)
-data_graph <- as.matrix(table(data_net)) %*% t(as.matrix(table(data_net))) %>%
-                          graph_from_adjacency_matrix(mode = "undirected")
-data_graph <- simplify(data_graph, remove.loops = TRUE, 
-                               remove.multiple = TRUE)
-
-
-set.seed(1)
-
-plot(data_graph, 
-     main= paste('Until year', as.character(2022)),
-     layout = layout_in_circle(data_graph), 
-     vertex.label.font = 4,
-     vertex.size = 10,
-     vertex.label = NA,
-     vertex.label.dist=1.5,
-     edge.width = 1, 
-     edge.color = "black")
-# plot(data_graph, 
-#      layout = layout_in_circle(data_graph), 
-#      # vertex.color = data$color, 
-#      # vertex.label = data$participants, 
-#      vertex.label = NA,
-#      # vertex.label.font = 4,
-#      vertex.size = 10, 
-#      edge.width = 1, 
-#      vertex.label.dist=1.5,
-#      edge.color = "black")
-```
-
-Ying 
 
 ```{r}
+# for loop for the network over time. Starting at 1997 when the first connection is formed
 
 for (year in 1997:2022) {
   print(year)
@@ -358,6 +293,7 @@ for (year in 1997:2022) {
     add.rownames = NA
   )
   
+  # saving output for the report
   jpeg(paste0(year,".jpeg"), width=15, height=15, units="in", res=300)
   
   plot(grap,
@@ -368,135 +304,38 @@ for (year in 1997:2022) {
        # vertex.label = NA,
        vertex.label.color = "black",
        vertex.size = 8
-       # ,vertex.label.dist=1
-       # ,vertex.size = ifelse(igraph::V(journalists_net)$type == FALSE, 16, 6)
        )
   title(main=paste0("until year ", year), cex.main=4)
+  
   dev.off()
 }
 
 ```
 
-```{r}
-journalists <- read.csv("journalists-edges.csv", 
-                        header = TRUE, row.names = 1) 
-
-journalists_attr <- read.csv("journalists-nodes.csv", 
-                             header = TRUE, 
-                             as.is = TRUE)
-
-journalists_net <- igraph::graph.incidence(journalists)
-```
 
 ```{r}
-year <- 0
-paste0("until year ", year)
-```
-
-```{r}
-igraph::V(journalists_net)$color <- hcl.colors(2)[as.factor(igraph::V(journalists_net)$type)]
-igraph::V(journalists_net)$shape <- ifelse(igraph::V(journalists_net)$type == TRUE, "circle", "square")
-# 
-# # News agencies will have name labels, journalists will not:
-igraph::V(journalists_net)$label <- ifelse(igraph::V(journalists_net)$type == FALSE,
-                                           journalists_attr$name[igraph::V(journalists_net)$type == FALSE],
-                                           NA)
-
-plot(journalists_net, 
-     vertex.label.cex = 0.6,
-     vertex.label.font = 2, 
-     vertex.label.color = "white"
-     # ,vertex.size = ifelse(igraph::V(journalists_net)$type == FALSE, 16, 6)
-     )
-
-```
-
-```{r}
-journalists
-```
-
-
-
-```{r}
-
+# used this cell for checking other companies second or third connection networks
 data_net <- maersk_scnd_data %>% select(participants, deal_number)
 
 data_matrix <- as.matrix(table(data_net)) %*% 
                         t(as.matrix(table(data_net)))
-# diag(data_matrix) <- 0
-# data_matrix[data_matrix > 1.1] <- 1
-
-# data_matrix[lower.tri(data_matrix)] <- 0
 
 data_graph <- igraph::graph.incidence(data_matrix)
-
 
 data_graph <- simplify(data_graph, remove.loops = TRUE, 
                                remove.multiple = TRUE)
 
 
-
 grap <- graph_from_adjacency_matrix(
   data_matrix,
   mode = "undirected",
-  # mode = c("directed", "undirected", "max", "min", "upper", "lower", "plus"),
   weighted = "max",
   diag = FALSE,
   add.colnames = NULL,
   add.rownames = NA
 )
 
-# pdf("graphopt.pdf", height = 14, width = 14)
-
-plot(grap,
-     # main = "hello",
-     vertex.label.cex = 0.8,
-     vertex.label.font = 2,
-     # vertex.label = NA,
-     vertex.label.color = "black",
-     vertex.size = 8,
-     edge.width = 1
-     # ,vertex.size = ifelse(igraph::V(journalists_net)$type == FALSE, 16, 6)
-     )
-# dev.off()
-```
-
-```{r}
-maersk_frst_data$participants[maersk_frst_data$participants == "MAERSK A S"] <- "AP MOLLER MAERSK A S"
-maersk_frst_data
-```
-
-
-```{r}
-data_net <- maersk_scnd_data %>% select(participants, deal_number)
-
-data_matrix <- as.matrix(table(data_net)) %*% 
-                        t(as.matrix(table(data_net)))
-# diag(data_matrix) <- 0
-# data_matrix[data_matrix > 1.1] <- 1
-
-# data_matrix[lower.tri(data_matrix)] <- 0
-
-data_graph <- igraph::graph.incidence(data_matrix)
-
-
-data_graph <- simplify(data_graph, remove.loops = TRUE, 
-                               remove.multiple = TRUE)
-
-
-
-grap <- graph_from_adjacency_matrix(
-  data_matrix,
-  mode = "undirected",
-  # mode = c("directed", "undirected", "max", "min", "upper", "lower", "plus"),
-  weighted = "max",
-  diag = FALSE,
-  add.colnames = NULL,
-  add.rownames = NA
-)
-
-
-# jpeg("YANG MING MARINE TRANSPORT.jpeg", width=15, height=15, units="in", res=300)
+igraph::V(grap)$color <- hcl.colors(deal_nrs)[as.factor(igraph::V(grap)$type)]
 
 plot(grap,
      vertex.label.cex = 1,
@@ -504,18 +343,9 @@ plot(grap,
      # vertex.label = NA,
      vertex.label.color = "black",
      vertex.size = 8
-     # ,vertex.label.dist=1
-     # ,vertex.size = ifelse(igraph::V(journalists_net)$type == FALSE, 16, 6)
      )
 title(main=paste0("YANG MING MARINE TRANSPORT"), cex.main=4)
-# dev.off()
 ```
-
-```{r}
-data_net$participants
-```
-
-
 
 
 
